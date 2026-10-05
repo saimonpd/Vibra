@@ -110,7 +110,8 @@ Se abre en http://localhost:8501.
 | PowerShell bloquea `Activate.ps1` | `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process` (solo afecta a esa terminal) |
 | `pip.exe` bloqueado por Windows Defender | Usar siempre `python -m pip ...` |
 | `No module named '...'` | Falta instalar dependencias: activa el venv y ejecuta `python -m pip install -r requirements.txt` |
-| El cuestionario dice que el servicio no está disponible | Comprueba que el backend está arrancado y que `API_URL` en `.env` es correcta |
+| El cuestionario dice que no ha podido cargar el formulario | Comprueba que el backend está arrancado, que `API_URL` en `.env` es correcta y que `http://127.0.0.1:8000/salud` responde |
+| `cannot import name 'load_dotenv'` | Está instalado el paquete equivocado. Desinstala `dotenv` e instala `python-dotenv` |
 
 ## Endpoints de la API
 
@@ -118,13 +119,30 @@ Se abre en http://localhost:8501.
 |---|---|---|---|
 | POST | `/palabras` | Guarda una palabra y le añade la fecha | `{ "palabra": "motivado" }` |
 | GET | `/listapalabras` | Devuelve todas las palabras guardadas. Opcional: `?dia=2026-10-05` filtra por día | — |
-| GET | `/salud` | Comprueba que la API está viva y cuenta los registros | — |
+| GET | `/salud` | Comprueba que la API está viva y cuenta los registros. El frontend la consulta antes de mostrar el formulario | — |
 
 **Ejemplo de respuesta de `POST /palabras`:**
 
 ```json
 { "palabra": "motivado", "fecha": "2026-10-05T11:19:07" }
 ```
+
+## Comportamiento del cuestionario
+
+Antes de mostrar el formulario, `frontend/views/registro.py` consulta `GET /salud`:
+
+```text
+Se abre el Cuestionario
+        │
+        ▼
+GET /salud  ──► 200 OK ──► se muestra el formulario ──► POST /palabras
+        │
+        └─► error o sin respuesta ──► aviso: "no hemos podido cargar el formulario"
+```
+
+- Si la API **no está disponible**, el alumno ve un aviso claro en lugar de un formulario que fallaría al enviar.
+- Si la palabra está vacía (o solo espacios), el formulario no la envía.
+- Los errores técnicos se escriben en la consola del servidor; el alumno solo ve mensajes amables.
 
 ## Almacenamiento de datos
 
@@ -141,6 +159,8 @@ Las respuestas se guardan en `backend/datos/palabras.jsonl` (formato **JSON Line
 - [x] Comunicación Streamlit ↔ FastAPI
 - [x] Cuestionario conectado con la API
 - [x] Persistencia en fichero JSON Lines
+- [x] Comprobación de la salud de la API antes de mostrar el formulario
+- [ ] Guardar la respuesta en local si la API no está disponible y reenviarla después
 - [ ] Página de estadísticas
 - [ ] Análisis de sentimiento con IA
 - [ ] Despliegue público
