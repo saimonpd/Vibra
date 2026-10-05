@@ -8,16 +8,20 @@ Termómetro emocional del aula: cada alumno resume en una palabra cómo se sient
 
 ## ¿Qué hace?
 
-1. El alumno escribe una palabra en la interfaz web (Streamlit).
+1. El alumno escribe una palabra en el cuestionario (Streamlit).
 2. El frontend envía la palabra al backend mediante una petición HTTP (JSON).
-3. El backend (FastAPI) valida los datos con Pydantic y los procesa.
+3. El backend (FastAPI) valida los datos con Pydantic, le añade la fecha y la guarda en un fichero.
 4. *(Próximamente)* Un modelo de IA clasifica si la palabra es positiva, neutra o negativa.
+5. *(Próximamente)* La página de estadísticas muestra cómo está la clase.
+
+🔒 **Privacidad:** las palabras son anónimas. No se guarda quién las escribe.
 
 ## Arquitectura
 
 ```text
 Navegador ──► Streamlit (frontend, :8501) ──HTTP/JSON──► FastAPI (backend, :8000)
                                                               │
+                                                              ├──► backend/datos/palabras.jsonl
                                                               └──► (futuro) servicio de IA
 ```
 
@@ -28,11 +32,18 @@ Regla de diseño: el frontend **solo** habla con la API. Nunca accede directamen
 ```text
 Vibra/
 ├── backend/
-│   ├── main.py             # API FastAPI
-│   └── requirements.txt    # Dependencias del backend
+│   ├── main.py              # API FastAPI
+│   ├── requirements.txt     # Dependencias del backend
+│   └── datos/
+│       └── palabras.jsonl   # Respuestas guardadas (se genera solo)
 ├── frontend/
-│   ├── app.py              # Interfaz Streamlit
-│   └── requirements.txt    # Dependencias del frontend
+│   ├── app.py               # Punto de entrada y navegación de Streamlit
+│   ├── views/
+│   │   ├── inicio.py        # Portada: explicación de la app
+│   │   ├── registro.py      # Cuestionario: envía la palabra a la API
+│   │   └── estadisticas.py  # Estadísticas de la clase (en construcción)
+│   └── requirements.txt     # Dependencias del frontend
+├── .env.example             # Plantilla de configuración
 ├── .gitignore
 └── README.md
 ```
@@ -68,31 +79,70 @@ cd frontend
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+```
+
+Antes de arrancar, crea tu archivo de configuración a partir de la plantilla:
+
+```powershell
+copy .env.example .env
+```
+
+Abre `.env` y escribe la dirección de tu API. En local:
+
+```text
+API_URL=http://127.0.0.1:8000
+```
+
+Y ya puedes arrancar la interfaz:
+
+```powershell
 python -m streamlit run app.py
 ```
 
-La interfaz se abre en http://localhost:8501.
+Se abre en http://localhost:8501.
 
-### Problemas frecuentes en Windows
+> ⚠️ El archivo `.env` **nunca se sube a Git** (está en `.gitignore`). Lo que se comparte es `.env.example`, que solo lista los nombres de las variables, sin valores.
+
+### Problemas frecuentes
 
 | Problema | Solución |
 |---|---|
 | PowerShell bloquea `Activate.ps1` | `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process` (solo afecta a esa terminal) |
 | `pip.exe` bloqueado por Windows Defender | Usar siempre `python -m pip ...` |
+| `No module named '...'` | Falta instalar dependencias: activa el venv y ejecuta `python -m pip install -r requirements.txt` |
+| El cuestionario dice que el servicio no está disponible | Comprueba que el backend está arrancado y que `API_URL` en `.env` es correcta |
 
 ## Endpoints de la API
 
 | Método | Ruta | Descripción | Cuerpo de la petición |
 |---|---|---|---|
-| POST | `/...` | ... | `{ ... }` |
-| GET | `/...` | ... | — |
+| POST | `/palabras` | Guarda una palabra y le añade la fecha | `{ "palabra": "motivado" }` |
+| GET | `/listapalabras` | Devuelve todas las palabras guardadas. Opcional: `?dia=2026-10-05` filtra por día | — |
+| GET | `/salud` | Comprueba que la API está viva y cuenta los registros | — |
+
+**Ejemplo de respuesta de `POST /palabras`:**
+
+```json
+{ "palabra": "motivado", "fecha": "2026-10-05T11:19:07" }
+```
+
+## Almacenamiento de datos
+
+Las respuestas se guardan en `backend/datos/palabras.jsonl` (formato **JSON Lines**): cada línea es un objeto JSON independiente, así que añadir una respuesta es solo escribir una línea al final del fichero.
+
+```text
+{"palabra": "motivado", "fecha": "2026-10-05T11:19:07"}
+{"palabra": "cansado", "fecha": "2026-10-05T11:20:31"}
+```
 
 ## Hoja de ruta
 
 - [x] Estructura modular backend / frontend
 - [x] Comunicación Streamlit ↔ FastAPI
+- [x] Cuestionario conectado con la API
+- [x] Persistencia en fichero JSON Lines
+- [ ] Página de estadísticas
 - [ ] Análisis de sentimiento con IA
-- [ ] Persistencia de las respuestas
 - [ ] Despliegue público
 
 ## Autor
