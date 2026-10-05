@@ -1,4 +1,11 @@
 import streamlit as st
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+API_URL = os.environ.get("API_URL")
 
 st.header("Cuestionario de sentimientos")
 
@@ -8,10 +15,21 @@ with st.form("cuestionario_alumno"):
     terminado = st.form_submit_button("Enviar")
 
 if terminado:
-    # 1. Comprobar que escribió algo
-    # 2. Meter dentro de un JSON
-    # 3. Llevarlo hacia la API
-    # 4. Comprobar la respuesta de la API (excepts)
-    # Si se ha enviado correctamente meter un st.warning avisando de que ya ha sido registrado 
-    # Si ha habido un error especificarlo.
+    if not palabra.strip():
+        st.warning("No puedes enviar un texto vacio.")
+    else:
+        try:
+            respuesta = requests.post(
+                f"{API_URL}/palabras",
+                json={"palabra": palabra},
+                timeout=5,
+            )
+            if respuesta.status_code == 200:
+                st.success(f"¡Gracias por tu respuesta!")
+            else:
+                st.error(f"Ha habido un error en el servidor, intentalo de nuevo.")
+                print(f"Ha habido un error en el servidor: {respuesta.text}")
+        except requests.exceptions.RequestException as error:
+            st.error(f"Nuestro servicio no esta disponible ahora, intentalo de nuevo o ponte en contacto con nosotros")
+            print(f"No se pudo conectar con la API: {error}")
     pass
