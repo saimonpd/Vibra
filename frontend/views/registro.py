@@ -10,16 +10,6 @@ API_URL = os.environ.get("API_URL")
 
 st.header("Cuestionario de sentimientos")
 
-with st.form("cuestionario_alumno"):
-
-    seleccionador_emociones = st.pills(
-        "¿Que palabra define tus sentimientos ahora mismo?",
-        options=emociones.keys(),
-        format_func=lambda option: emociones[option],
-        selection_mode="single"
-    )
-
-    palabra = st.text_input("Otra: (Si escribes aqui, lo seleccionado arriba no contara.)")
 # (Futuro) Si la API no esta disponible -> guardar palabra y fecha en lista + avisar al usuario -> cuando este la API disponile continuar el proceso
 
 api_disponible = False
@@ -35,8 +25,15 @@ except requests.exceptions.RequestException as error:
 
 if api_disponible:
     with st.form("cuestionario_alumno"):
-        palabra = st.text_input("¿Que palabra define tus sentimientos ahora mismo?")
 
+        seleccionador_emociones = st.pills(
+            "¿Que palabra define tus sentimientos ahora mismo?",
+            options=emociones.keys(),
+            format_func=lambda option: emociones[option],
+            selection_mode="single"
+        )
+
+        palabra = st.text_input("Otra: (Si escribes aqui, lo seleccionado arriba no contara.)")
         terminado = st.form_submit_button("Enviar")
 
     if terminado:

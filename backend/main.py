@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from datetime import datetime
 from pathlib import Path
-import json
+from database.repository.palabras_repository import RepositorioPalabras
+from utils.analizador import clasificar
 
 app = FastAPI(
     title="Vibra API",
@@ -22,49 +23,34 @@ app.add_middleware( # añade un middleware a mi web: capa intermedia que interce
     allow_headers=["*"], # controla que cabeceras HTTP custom pueden enviarme (Authorization, Content-Type...)
 )
 
-DATA_DIR = Path(__file__).parent / "datos"
-DATA_DIR.mkdir(exist_ok=True)
-FICHERO = DATA_DIR / "palabras.jsonl"
+FICHERO = Path(__file__).parent / "database" / "palabras.jsonl"
+
+repo = RepositorioPalabras(FICHERO)
 
 class Entrada(BaseModel):
     palabra: str = Field(..., min_length=1, max_length=30)
 
 class EntradaGuardada(Entrada):
+    palabra: str
+    sentimiento: str
     fecha: str
 
 
 @app.post("/palabras", response_model=EntradaGuardada)
 def anadir_palabra(entrada: Entrada):
-    """Recoge las palabra recibida, le añade la fecha y lo guarda en BD"""
-    registro = EntradaGuardada(
-        palabra = entrada.palabra.strip().lower(),
-        fecha = datetime.now().isoformat(timespec="seconds"),
+    """Recibe una palabra, calcula su sentimiento y la guarda."""
+    palabra = entrada.palabra.strip().lower()
+    return repo.guardar(
+        palabra=palabra,
+        sentimiento=clasificar(palabra),
+        fecha=datetime.now().isoformat(timespec="seconds"),
     )
-
-    with open(FICHERO, "a", encoding="utf-8") as f:
-        f.write(registro.model_dump_json() + "\n")
-
-    return registro
-
 
 @app.get("/listapalabras", response_model=list[EntradaGuardada])
 def obtener_palabras(dia: str | None = None):
-    """Recoge todos los datos del dia solicitado de la BD y lo muestra"""
-    if not FICHERO.exists():
-        return ["El fichero no existe."]
-
-    resultado = []
-    with open(FICHERO, "r", encoding="utf-8") as f:
-        for linea in f:
-            linea = linea.strip()
-            if not linea:
-                continue
-            registro = json.loads(linea)
-            if dia is None or registro["fecha"].startswith(dia):
-                resultado.append(registro)
-    return resultado
+    """Devuelve las palabras guardadas, opcionalmente de un día (AAAA-MM-DD)."""
+    return repo.obtener_por_dia(dia)
 
 @app.get("/salud")
 def salud():
-    total = sum(1 for _ in open(FICHERO)) if FICHERO.exists else 0
-    return {"estado": "ok", "total_registros": total}
+    return {"estado": "ok", "total_registros": repo.contar_registros()}
