@@ -22,4 +22,4 @@ col1, col2 = st.columns(2)
 with col1:
     st.page_link("views/registro.py", label="Haz el cuestionario anonimo", icon="📝")
 with col2:
-    st.page_link("views/estadisticas.py", label="Mira las estadisticas de la clase", icon="📊")
+    st.page_link("views/nube.py", label="Mira la nube de la clase", icon="📊")

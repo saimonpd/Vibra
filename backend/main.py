@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from database.repository.palabras_repository import RepositorioPalabras
 from utils.analizador import clasificar
+from utils.conteo_palabras import ConteoPalabra, conteo_palabras
 
 app = FastAPI(
     title="Vibra API",
@@ -51,6 +52,10 @@ def obtener_palabras(dia: str | None = None):
     """Devuelve las palabras guardadas, opcionalmente de un día (AAAA-MM-DD)."""
     return repo.obtener_por_dia(dia)
 
+@app.get("/conteo", response_model=list[ConteoPalabra])
+def conteo(dia: str | None = None):
+    return conteo_palabras(repo, dia)
+    
 @app.get("/salud")
 def salud():
     return {"estado": "ok", "total_registros": repo.contar_registros()}

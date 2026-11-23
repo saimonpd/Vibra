@@ -41,7 +41,7 @@ Vibra/
 │   ├── views/
 │   │   ├── inicio.py        # Portada: explicación de la app
 │   │   ├── registro.py      # Cuestionario: envía la palabra a la API
-│   │   └── estadisticas.py  # Estadísticas de la clase (en construcción)
+│   │   └── nube.py  # Estadísticas de la clase (en construcción)
 │   └── requirements.txt     # Dependencias del frontend
 ├── .env.example             # Plantilla de configuración
 ├── .gitignore
