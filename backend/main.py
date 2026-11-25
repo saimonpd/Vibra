@@ -59,3 +59,6 @@ def conteo(dia: str | None = None):
 @app.get("/salud")
 def salud():
     return {"estado": "ok", "total_registros": repo.contar_registros()}
+
+
+a
